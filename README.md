@@ -40,6 +40,7 @@ The script will scan your repo, ask the LLM for **one concrete improvement**
 | `ADVANCE_API_URL` | `https://api.openai.com/v1/chat/completions` | Any OpenAI-compatible endpoint |
 | `ADVANCE_MODEL` | `gpt-4o` | Model name |
 | `ADVANCE_MAX_TOKENS` | `4096` | Max tokens in the LLM response |
+| `ADVANCE_EXCLUDE_EXTENSIONS` | `png\|jpg\|gif\|...` | `\|`-separated list of file extensions to skip when sampling file contents |
 
 ## Website
 

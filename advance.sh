@@ -56,11 +56,13 @@ FILE_TREE="$(git ls-files | head -200)"
 GIT_LOG="$(git --no-pager log --oneline -10 2>/dev/null || echo '(no commits yet)')"
 
 # Sample file contents (first 100 lines of up to 5 tracked files)
+ADVANCE_EXCLUDE_EXTENSIONS="${ADVANCE_EXCLUDE_EXTENSIONS:-png|jpg|gif|ico|svg|woff|woff2|ttf|eot|pdf|zip|tar|gz}"
+
 FILE_SAMPLES=""
 while IFS= read -r f; do
   [[ -f "$f" ]] || continue
   FILE_SAMPLES+="### $f ###\n$(head -100 "$f")\n\n"
-done < <(git ls-files | grep -v -E '\.(png|jpg|gif|ico|svg|woff|woff2|ttf|eot|pdf|zip|tar|gz)$' | head -5)
+done < <(git ls-files | grep -v -E "\.(${ADVANCE_EXCLUDE_EXTENSIONS})\$" | head -5)
 
 # ---------------------------------------------------------------------------
 # Ask the LLM for one concrete improvement
@@ -149,7 +151,7 @@ for change in data.get("changes", []):
     # Safety: never write outside the repo
     abs_path = os.path.realpath(path)
     cwd      = os.path.realpath(".")
-    if not abs_path.startswith(cwd + os.sep) and abs_path != cwd:
+    if not abs_path.startswith(cwd + os.sep):
         print(f"  [skip] path '{path}' is outside the repository root", file=sys.stderr)
         continue
 
