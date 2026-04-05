@@ -1,0 +1,604 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>advance.sh — AI-powered contributions for every repo</title>
+  <style>
+    /* ------------------------------------------------------------------ */
+    /* Reset & base                                                         */
+    /* ------------------------------------------------------------------ */
+    *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+
+    :root {
+      --bg:        #0d1117;
+      --surface:   #161b22;
+      --border:    #30363d;
+      --accent:    #58a6ff;
+      --accent2:   #3fb950;
+      --warn:      #f78166;
+      --text:      #e6edf3;
+      --muted:     #8b949e;
+      --code-bg:   #1f2937;
+      --radius:    10px;
+      --font-mono: "SF Mono", "Fira Code", "Consolas", monospace;
+    }
+
+    html { scroll-behavior: smooth; }
+
+    body {
+      background: var(--bg);
+      color: var(--text);
+      font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Helvetica, Arial, sans-serif;
+      font-size: 16px;
+      line-height: 1.7;
+    }
+
+    a { color: var(--accent); text-decoration: none; }
+    a:hover { text-decoration: underline; }
+
+    /* ------------------------------------------------------------------ */
+    /* Layout helpers                                                       */
+    /* ------------------------------------------------------------------ */
+    .container {
+      max-width: 860px;
+      margin: 0 auto;
+      padding: 0 24px;
+    }
+
+    section { padding: 72px 0; }
+    section + section { border-top: 1px solid var(--border); }
+
+    h1, h2, h3 {
+      font-weight: 700;
+      letter-spacing: -0.02em;
+      line-height: 1.2;
+    }
+
+    h2 { font-size: 1.75rem; margin-bottom: 1rem; }
+    h3 { font-size: 1.2rem;  margin-bottom: .5rem; color: var(--accent); }
+
+    p { margin-bottom: 1rem; color: var(--muted); }
+    p:last-child { margin-bottom: 0; }
+
+    strong { color: var(--text); }
+
+    /* ------------------------------------------------------------------ */
+    /* Hero                                                                 */
+    /* ------------------------------------------------------------------ */
+    #hero {
+      padding: 100px 0 80px;
+      text-align: center;
+    }
+
+    #hero .badge {
+      display: inline-block;
+      background: rgba(88, 166, 255, .12);
+      color: var(--accent);
+      border: 1px solid rgba(88, 166, 255, .3);
+      border-radius: 999px;
+      font-size: .8rem;
+      font-weight: 600;
+      letter-spacing: .08em;
+      text-transform: uppercase;
+      padding: 4px 14px;
+      margin-bottom: 24px;
+    }
+
+    #hero h1 {
+      font-size: clamp(2.4rem, 6vw, 4rem);
+      margin-bottom: 20px;
+    }
+
+    #hero h1 span { color: var(--accent); }
+
+    #hero .sub {
+      font-size: 1.15rem;
+      color: var(--muted);
+      max-width: 580px;
+      margin: 0 auto 40px;
+    }
+
+    .btn-group { display: flex; gap: 12px; justify-content: center; flex-wrap: wrap; }
+
+    .btn {
+      display: inline-flex;
+      align-items: center;
+      gap: 8px;
+      padding: 12px 24px;
+      border-radius: var(--radius);
+      font-size: .95rem;
+      font-weight: 600;
+      cursor: pointer;
+      transition: opacity .15s, transform .15s;
+    }
+    .btn:hover { opacity: .85; transform: translateY(-1px); text-decoration: none; }
+
+    .btn-primary { background: var(--accent);  color: #0d1117; }
+    .btn-ghost   { background: transparent; color: var(--text); border: 1px solid var(--border); }
+
+    /* ------------------------------------------------------------------ */
+    /* Code block                                                           */
+    /* ------------------------------------------------------------------ */
+    .code-block {
+      position: relative;
+      background: var(--code-bg);
+      border: 1px solid var(--border);
+      border-radius: var(--radius);
+      padding: 20px 24px;
+      overflow-x: auto;
+    }
+
+    .code-block pre {
+      font-family: var(--font-mono);
+      font-size: .88rem;
+      line-height: 1.6;
+      color: #e6edf3;
+      white-space: pre;
+    }
+
+    .code-block .comment { color: var(--muted); }
+    .code-block .cmd     { color: var(--accent2); }
+    .code-block .str     { color: #ffa657; }
+    .code-block .kw      { color: #ff7b72; }
+
+    .copy-btn {
+      position: absolute;
+      top: 12px; right: 12px;
+      background: var(--surface);
+      border: 1px solid var(--border);
+      border-radius: 6px;
+      color: var(--muted);
+      font-size: .78rem;
+      padding: 4px 10px;
+      cursor: pointer;
+      transition: color .15s;
+    }
+    .copy-btn:hover { color: var(--text); }
+
+    /* ------------------------------------------------------------------ */
+    /* How it works — steps                                                 */
+    /* ------------------------------------------------------------------ */
+    .steps {
+      display: grid;
+      gap: 24px;
+      counter-reset: step;
+    }
+
+    .step {
+      display: grid;
+      grid-template-columns: 48px 1fr;
+      gap: 20px;
+      align-items: start;
+      background: var(--surface);
+      border: 1px solid var(--border);
+      border-radius: var(--radius);
+      padding: 24px;
+    }
+
+    .step-num {
+      counter-increment: step;
+      width: 48px; height: 48px;
+      border-radius: 50%;
+      background: rgba(88, 166, 255, .12);
+      border: 1px solid rgba(88, 166, 255, .3);
+      display: flex; align-items: center; justify-content: center;
+      font-size: 1.1rem;
+      font-weight: 700;
+      color: var(--accent);
+      flex-shrink: 0;
+    }
+
+    /* ------------------------------------------------------------------ */
+    /* Feature cards                                                        */
+    /* ------------------------------------------------------------------ */
+    .cards {
+      display: grid;
+      grid-template-columns: repeat(auto-fit, minmax(240px, 1fr));
+      gap: 20px;
+    }
+
+    .card {
+      background: var(--surface);
+      border: 1px solid var(--border);
+      border-radius: var(--radius);
+      padding: 24px;
+    }
+
+    .card-icon {
+      font-size: 1.8rem;
+      margin-bottom: 12px;
+      display: block;
+    }
+
+    /* ------------------------------------------------------------------ */
+    /* Rating table                                                         */
+    /* ------------------------------------------------------------------ */
+    table {
+      width: 100%;
+      border-collapse: collapse;
+      font-size: .92rem;
+    }
+
+    th {
+      text-align: left;
+      padding: 12px 16px;
+      border-bottom: 2px solid var(--border);
+      color: var(--accent);
+      font-weight: 600;
+    }
+
+    td {
+      padding: 12px 16px;
+      border-bottom: 1px solid var(--border);
+      color: var(--muted);
+    }
+
+    tr:last-child td { border-bottom: none; }
+
+    .tag {
+      display: inline-block;
+      border-radius: 999px;
+      font-size: .75rem;
+      font-weight: 600;
+      padding: 2px 10px;
+    }
+    .tag-green  { background: rgba(63,185,80,.15);  color: var(--accent2); }
+    .tag-blue   { background: rgba(88,166,255,.15); color: var(--accent);  }
+    .tag-yellow { background: rgba(210,153,34,.15); color: #e3b341; }
+    .tag-red    { background: rgba(247,129,102,.15);color: var(--warn);    }
+
+    /* ------------------------------------------------------------------ */
+    /* Footer                                                               */
+    /* ------------------------------------------------------------------ */
+    footer {
+      border-top: 1px solid var(--border);
+      padding: 40px 0;
+      text-align: center;
+    }
+    footer p { font-size: .88rem; color: var(--muted); }
+
+    /* ------------------------------------------------------------------ */
+    /* Responsive                                                           */
+    /* ------------------------------------------------------------------ */
+    @media (max-width: 600px) {
+      .step { grid-template-columns: 1fr; }
+      .step-num { width: 36px; height: 36px; font-size: .9rem; }
+    }
+  </style>
+</head>
+<body>
+
+<!-- ===================================================================== -->
+<!-- HERO                                                                   -->
+<!-- ===================================================================== -->
+<section id="hero">
+  <div class="container">
+    <div class="badge">Open Contribution Protocol</div>
+    <h1>Drop one script.<br>Advance <span>every</span> repo.</h1>
+    <p class="sub">
+      <strong>advance.sh</strong> is a single shell script you add to any git
+      repository. Run it once and an AI agent makes one meaningful improvement,
+      opens a pull request, and enters it into the contribution reward pool.
+    </p>
+    <div class="btn-group">
+      <a class="btn btn-primary" href="#install">⬇ Get the script</a>
+      <a class="btn btn-ghost"   href="https://github.com/pierce403/advance.sh" target="_blank" rel="noopener">
+        ★ View on GitHub
+      </a>
+    </div>
+  </div>
+</section>
+
+<!-- ===================================================================== -->
+<!-- WHAT IS ADVANCE.SH?                                                   -->
+<!-- ===================================================================== -->
+<section id="what">
+  <div class="container">
+    <h2>What is <code>advance.sh</code>?</h2>
+    <p>
+      Every software project has a backlog of small, worthy improvements —
+      missing tests, stale documentation, un-handled edge cases, slow functions.
+      Most never get done because they're not glamorous enough to prioritize.
+    </p>
+    <p>
+      <strong>advance.sh</strong> solves this by running a single
+      <em>"ralph loop"</em>: it feeds your repository's context to a large
+      language model, asks for <strong>one concrete improvement</strong>,
+      applies the change, commits it to a new branch, and opens a pull request
+      — all automatically.
+    </p>
+    <p>
+      The term <em>ralph loop</em> describes the act of an AI agent reflecting
+      on a codebase, deciding on the highest-value next step, acting on it, and
+      submitting the result for human review — a tight feedback cycle that keeps
+      forward momentum without human bottlenecks.
+    </p>
+  </div>
+</section>
+
+<!-- ===================================================================== -->
+<!-- HOW IT WORKS                                                           -->
+<!-- ===================================================================== -->
+<section id="how">
+  <div class="container">
+    <h2>How it works</h2>
+    <div class="steps">
+
+      <div class="step">
+        <div class="step-num">1</div>
+        <div>
+          <h3>Scan the repository</h3>
+          <p>
+            The script reads your tracked file tree, the last ten commits, and
+            the content of your key source files. No code leaves your machine
+            beyond what you send to the model API.
+          </p>
+        </div>
+      </div>
+
+      <div class="step">
+        <div class="step-num">2</div>
+        <div>
+          <h3>Run the ralph loop</h3>
+          <p>
+            Your configured LLM (OpenAI GPT-4o by default, or any
+            OpenAI-compatible endpoint) receives the context and is asked to
+            pick <strong>one small, self-contained improvement</strong> and
+            return the exact file changes needed to implement it.
+          </p>
+        </div>
+      </div>
+
+      <div class="step">
+        <div class="step-num">3</div>
+        <div>
+          <h3>Apply &amp; commit</h3>
+          <p>
+            The changes are written to disk on a new branch named
+            <code>advance/&lt;topic&gt;</code>. The commit message follows the
+            Conventional Commits standard so it integrates cleanly with any
+            existing changelog tooling.
+          </p>
+        </div>
+      </div>
+
+      <div class="step">
+        <div class="step-num">4</div>
+        <div>
+          <h3>Open a pull request</h3>
+          <p>
+            If the <code>gh</code> CLI is available the PR is created
+            immediately. Otherwise a pre-filled GitHub compare URL is printed
+            so you can open it with one click.
+          </p>
+        </div>
+      </div>
+
+      <div class="step">
+        <div class="step-num">5</div>
+        <div>
+          <h3>Get rated &amp; rewarded</h3>
+          <p>
+            An evaluation agent scores each submitted PR on correctness,
+            usefulness, and originality. Outstanding contributions rise to the
+            top of the leaderboard and can earn <strong>token rewards</strong>
+            from the contribution pool.
+          </p>
+        </div>
+      </div>
+
+    </div>
+  </div>
+</section>
+
+<!-- ===================================================================== -->
+<!-- INSTALL                                                                -->
+<!-- ===================================================================== -->
+<section id="install">
+  <div class="container">
+    <h2>Add it to your repo in 30 seconds</h2>
+    <p>
+      Copy the script into your repository root, make it executable, export
+      your API key, and run it.
+    </p>
+
+    <h3 style="margin-top:32px;">1 — Download</h3>
+    <div class="code-block" style="margin-bottom:24px;">
+      <button class="copy-btn" onclick="copyCode(this)">Copy</button>
+      <pre><span class="cmd">curl</span> -fsSL https://raw.githubusercontent.com/pierce403/advance.sh/main/advance.sh \
+     -o advance.sh <span class="kw">&amp;&amp;</span> <span class="cmd">chmod</span> +x advance.sh</pre>
+    </div>
+
+    <h3>2 — Set your API key</h3>
+    <div class="code-block" style="margin-bottom:24px;">
+      <button class="copy-btn" onclick="copyCode(this)">Copy</button>
+      <pre><span class="kw">export</span> <span class="str">OPENAI_API_KEY</span>=sk-...your-key-here...</pre>
+    </div>
+
+    <h3>3 — Run</h3>
+    <div class="code-block" style="margin-bottom:24px;">
+      <button class="copy-btn" onclick="copyCode(this)">Copy</button>
+      <pre>./advance.sh</pre>
+    </div>
+
+    <h3>Optional — use a different model or provider</h3>
+    <div class="code-block">
+      <button class="copy-btn" onclick="copyCode(this)">Copy</button>
+      <pre><span class="comment"># Any OpenAI-compatible endpoint works</span>
+<span class="kw">export</span> <span class="str">ADVANCE_API_URL</span>=https://api.anthropic.com/v1/chat/completions
+<span class="kw">export</span> <span class="str">ADVANCE_MODEL</span>=claude-opus-4-5
+<span class="kw">export</span> <span class="str">OPENAI_API_KEY</span>=sk-ant-...
+./advance.sh</pre>
+    </div>
+  </div>
+</section>
+
+<!-- ===================================================================== -->
+<!-- WHY                                                                    -->
+<!-- ===================================================================== -->
+<section id="why">
+  <div class="container">
+    <h2>Why advance.sh?</h2>
+    <div class="cards">
+
+      <div class="card">
+        <span class="card-icon">⚡</span>
+        <h3>Zero friction</h3>
+        <p>
+          One script, no framework, no daemon. Works with any language or
+          project type that lives in a git repository.
+        </p>
+      </div>
+
+      <div class="card">
+        <span class="card-icon">🔒</span>
+        <h3>You stay in control</h3>
+        <p>
+          Every change arrives as a pull request. Merge, modify, or close it —
+          nothing lands in your main branch without your approval.
+        </p>
+      </div>
+
+      <div class="card">
+        <span class="card-icon">🌐</span>
+        <h3>Model agnostic</h3>
+        <p>
+          Defaults to GPT-4o but works with any OpenAI-compatible API — local
+          models via Ollama, Groq, Together AI, or your own endpoint.
+        </p>
+      </div>
+
+      <div class="card">
+        <span class="card-icon">🏆</span>
+        <h3>Contribution rewards</h3>
+        <p>
+          Merged, highly-rated PRs from <code>advance.sh</code> runs are
+          eligible for token rewards. The better the improvement, the larger
+          the potential payout.
+        </p>
+      </div>
+
+    </div>
+  </div>
+</section>
+
+<!-- ===================================================================== -->
+<!-- RATING SYSTEM                                                          -->
+<!-- ===================================================================== -->
+<section id="rating">
+  <div class="container">
+    <h2>How contributions are rated</h2>
+    <p>
+      After a PR is opened, the evaluation agent inspects the diff and scores
+      it across four dimensions. Scores are public and permanently on-chain.
+    </p>
+
+    <div class="code-block" style="margin-top: 32px; padding: 0; overflow: hidden; border-radius: var(--radius);">
+      <table>
+        <thead>
+          <tr>
+            <th>Dimension</th>
+            <th>Weight</th>
+            <th>What earns a high score</th>
+          </tr>
+        </thead>
+        <tbody>
+          <tr>
+            <td><strong>Correctness</strong></td>
+            <td><span class="tag tag-green">40 %</span></td>
+            <td>Tests pass, no regressions, logic is sound</td>
+          </tr>
+          <tr>
+            <td><strong>Usefulness</strong></td>
+            <td><span class="tag tag-blue">30 %</span></td>
+            <td>Addresses a real gap or pain point in the project</td>
+          </tr>
+          <tr>
+            <td><strong>Originality</strong></td>
+            <td><span class="tag tag-yellow">20 %</span></td>
+            <td>Non-trivial; not a cosmetic or near-duplicate change</td>
+          </tr>
+          <tr>
+            <td><strong>Style &amp; clarity</strong></td>
+            <td><span class="tag tag-red">10 %</span></td>
+            <td>Follows project conventions; commit message is descriptive</td>
+          </tr>
+        </tbody>
+      </table>
+    </div>
+
+    <p style="margin-top: 24px;">
+      PRs that score above <strong>85 / 100</strong> are considered
+      <em>excellent</em> and enter the top-tier reward pool. All merged PRs
+      with a score above 60 receive a base reward.
+    </p>
+  </div>
+</section>
+
+<!-- ===================================================================== -->
+<!-- FAQ                                                                    -->
+<!-- ===================================================================== -->
+<section id="faq">
+  <div class="container">
+    <h2>Frequently asked questions</h2>
+
+    <h3 style="margin-top: 32px;">Is my code sent to a third party?</h3>
+    <p>
+      Yes — the script sends a snapshot of your file tree and file contents to
+      the model API you configure (OpenAI by default). If this is a concern,
+      point <code>ADVANCE_API_URL</code> at a self-hosted model. Nothing is
+      sent to advance.sh infrastructure.
+    </p>
+
+    <h3 style="margin-top: 28px;">Can I run it in CI automatically?</h3>
+    <p>
+      Yes. Add a scheduled GitHub Actions workflow that exports your API key as
+      a secret and calls <code>./advance.sh</code>. A new PR will be opened
+      each time the workflow runs.
+    </p>
+
+    <h3 style="margin-top: 28px;">What if the LLM produces broken code?</h3>
+    <p>
+      The change arrives as a pull request, not a direct push. Review it like
+      any other PR. Your CI pipeline will run against it, and you always have
+      the final say on whether to merge.
+    </p>
+
+    <h3 style="margin-top: 28px;">How do rewards get paid out?</h3>
+    <p>
+      The reward mechanism is under active development. Follow the
+      <a href="https://github.com/pierce403/advance.sh" target="_blank" rel="noopener">GitHub repository</a>
+      for announcements.
+    </p>
+  </div>
+</section>
+
+<!-- ===================================================================== -->
+<!-- FOOTER                                                                 -->
+<!-- ===================================================================== -->
+<footer>
+  <div class="container">
+    <p>
+      <strong>advance.sh</strong> is open source under the
+      <a href="LICENSE" target="_blank">Apache 2.0 license</a>.
+      &nbsp;·&nbsp;
+      <a href="https://github.com/pierce403/advance.sh" target="_blank" rel="noopener">GitHub</a>
+    </p>
+    <p style="margin-top: 8px;">Built to push every repo forward, one PR at a time.</p>
+  </div>
+</footer>
+
+<script>
+  function copyCode(btn) {
+    const pre = btn.parentElement.querySelector('pre');
+    const text = pre ? pre.innerText : '';
+    navigator.clipboard.writeText(text).then(() => {
+      const orig = btn.textContent;
+      btn.textContent = 'Copied!';
+      setTimeout(() => { btn.textContent = orig; }, 1500);
+    });
+  }
+</script>
+</body>
+</html>
